@@ -1,0 +1,41 @@
+##########################################################################
+#       Configure a Scheduler Job to Backup a Switch Periodically        #
+##########################################################################
+---
+- name: Configure Scheduler Job to Backup Cisco Switch
+  hosts: nxosswitch
+  gather_facts: false
+
+  vars:
+    tftp_server: 192.168.1.2
+
+  tasks:
+    - name: Get device hostname
+      nxos_facts:
+        gather_subset:
+        - hardware
+
+    - name: Enable the scheduler feature
+      nxos_config:
+        lines:
+        - feature scheduler
+
+    - name: Creating a scheduler job
+      nxos_config:
+        lines:
+        - copy running-config tftp://{{ tftp_server }}/{{ ansible_net_hostname }}.cfg
+        parents: scheduler job name backup-config
+        before: no scheduler job name backup-config
+
+    - name: Scheduling a scheduler job
+      nxos_config:
+        lines:
+        - job name backup-config
+        - time weekly 07:11:55
+        parents: scheduler schedule name weeklybackup
+        before: no scheduler schedule name weeklybackup
+        replace: block
+
+    - name: Save running-configuration
+      nxos_config:
+        save_when: modified
