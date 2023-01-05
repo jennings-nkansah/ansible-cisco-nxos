@@ -3,7 +3,7 @@
 ###################################################################################
 ---
 - name: Display Physical Interfaces With No IP Addresses
-  hosts: nxos
+  hosts: nxosswitch
   gather_facts: false
 
   vars:
