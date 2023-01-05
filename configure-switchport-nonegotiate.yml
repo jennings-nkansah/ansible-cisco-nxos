@@ -1,0 +1,36 @@
+###################################################################################
+#      Ensure That 'Switchport Nonegotiate' Is Configured On All Trunk Ports      #
+###################################################################################
+---
+- name: Configure Switchport Nonegotiate on Trunk Ports
+  hosts: nxos
+  gather_facts: no
+
+  vars:
+     trunk_intf_list: []
+
+  tasks:
+    - name: Retrieving all interfaces
+      nxos_command:
+        commands: show running-config | include ^interface.*(thernet|channel).*$
+      register: intf_list
+
+    - name: Retrieving interfaces configurations
+      nxos_command:
+        commands: show running-config {{ item }}
+      register: intf_config
+      loop: "{{ intf_list.stdout_lines[0] }}"
+
+    - name: Retrieving trunk interfaces (excluding port-channel member ports)
+      set_fact:
+        trunk_intf_list: "{{ trunk_intf_list | default([]) + [ item.item ] }}"
+      loop: "{{ intf_config.results }}"
+      no_log: true
+      when: ('\n  switchport mode trunk' in item.stdout[0]) and ('\n  channel-group' not in item.stdout[0])
+
+    - name: Configuring switchport nonegotiate on trunk interfaces
+      nxos_config:
+        lines:
+        - switchport nonegotiate
+        parents: "{{ item }}"
+      loop: "{{ trunk_intf_list }}"
