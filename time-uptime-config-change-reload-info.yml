@@ -1,0 +1,25 @@
+##############################################################################################
+#    Show The Last Time Device Configuration Was Changed And The User Who Made The Change    #
+#    Also Display The Current Time And Uptime Of Device And The Reload Reason If Any         #
+##############################################################################################
+---
+- name: Show Configuration Change Info, Time And Uptime, And Reload Reason
+  hosts: nxosswitch
+  gather_facts: false
+
+  tasks:
+    - name: Retrieve required information
+      nxos_command:
+        commands:
+        - show running-config | include ^.Time|Running\sconfiguration\slast
+        - show version | include Kernel\suptime|Last\sreset
+        - show version | include ^\s+Reason
+      register: config_extract
+
+    - name: Format retrieved information
+      set_fact:
+         output: "{{ config_extract.stdout | join('\n') | regex_replace('!', '') | regex_replace('Last reset\\s+', 'Last reset ') }}"
+
+    - name: Show config change time and user, current time, uptime, and reload reason
+      debug:
+        var: output
