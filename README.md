@@ -1,6 +1,6 @@
 # ansible-cisco-nxos
 
-The `ansible-cisco-nxos` project provides Ansible playbooks for managing and automating your Cisco NXOS switches and routers.
+The `ansible-cisco-nxos` project provides Ansible playbooks for managing and automating your Cisco Nexus NX-OS switches.
 
 *Note: The ansible playbooks are not compatible with versions of Ansible before v2.8.*
 
