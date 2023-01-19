@@ -1,0 +1,35 @@
+# ############################################################################# #
+# Display the list of shutdown vlans, suspended vlans, and any active vlan that #
+#   have not been allowed on a trunk interface or assigned to an access port    #
+# ############################################################################# #
+---
+- name: Retrieve All Unused Vlans
+  hosts: nxosswitch
+  gather_facts: false
+
+  vars:
+    vlan_parse_path: ./parse_files/show-vlan-brief-parse.yml
+    unused_vlan_list: []
+
+  tasks:
+    - name: Retrieve all vlans
+      nxos_command:
+        commands:
+          - show vlan brief
+      register: output
+
+    - name: Convert cli output into yaml
+      set_fact:
+        vlan_list: "{{ output.stdout[0] | parse_cli( vlan_parse_path ) }}"
+      no_log: true
+
+    - name: Retrieve unused vlans
+      set_fact:
+        unused_vlan_list: "{{ unused_vlan_list + [ item.id ] }}"
+      loop: "{{ vlan_list.vlans }}"
+      when: "(( item.status != 'active' ) or ( item.status == 'active' and item.ports == [''] ))"
+      no_log: true
+
+    - name: Display unused vlans
+      debug:
+        var: unused_vlan_list
