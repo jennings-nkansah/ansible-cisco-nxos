@@ -1,0 +1,32 @@
+---
+- name: Backup Cisco NXOS Switch To A File
+  hosts: nxosswitch
+  gather_facts: false
+
+  tasks:
+    - name: Retrieve device hostname
+      nxos_facts:
+        gather_subset:
+          - '!all'
+          - '!min'
+        gather_network_resources:
+          - hostname
+
+    - name: Store hostname in a variable
+      set_fact:
+        hostname: "{{ ansible_network_resources.hostname.hostname }}"
+
+    - name: Get current date
+      local_action: command date +%Y-%b-%d
+      register: date
+
+    - name: Get current time
+      local_action: command date +%H:%M
+      register: time
+
+    - name: Backup running-config to a file
+      nxos_config:
+       backup: yes
+       backup_options:
+         filename: "{{ hostname }}_{{ time.stdout }}.cfg"
+         dir_path: /home/jnkansah/backup/{{ date.stdout }}
