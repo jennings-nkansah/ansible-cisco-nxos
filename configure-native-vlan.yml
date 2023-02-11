@@ -1,6 +1,6 @@
-###################################################################################
-#                     Configure Native Vlan On All Trunk Ports                    #
-###################################################################################
+# ##################################################################################
+#                       Configure Native Vlan On Trunk Ports                       #
+# ##################################################################################
 ---
 - name: Configure Native Vlan
   hosts: nxosswitch
@@ -12,33 +12,30 @@
 
   tasks:
     - name: Configure vlan {{ native_vlan }}
-      nxos_config:
-        lines:
-          - vlan {{ native_vlan }}
+      cisco.nxos.nxos_vlans:
+        config:
+          - name: "NATIVE-VLAN"
+            vlan_id: "{{ native_vlan | int }}"
+            enabled: true
 
-    - name: Configure vlan name
-      nxos_config:
-        lines:
-        - name NATIVE-VLAN
-        parents: vlan {{ native_vlan }}
-
-    - name: Retrieving all interfaces
-      ios_command:
+    - name: Retrieve interfaces
+      nxos_command:
         commands: show running-config | include ^interface.*(thernet|channel).*$
       register: intf_list
 
-    - name: Retrieving interfaces configurations
-      ios_command:
+    - name: Retrieve interface configurations
+      nxos_command:
         commands: show running-config {{ item }}
       register: intf_config
       loop: "{{ intf_list.stdout_lines[0] }}"
+      no_log: true
 
-    - name: Retrieving trunk interfaces (excluding port-channel member ports)
+    - name: Retrieve trunk interfaces
       set_fact:
         trunk_intf_list: "{{ trunk_intf_list | default([]) + [ item.item ] }}"
       loop: "{{ intf_config.results }}"
-      no_log: true
       when: ('\n  switchport mode trunk' in item.stdout[0]) and ('\n  channel-group' not in item.stdout[0])
+      no_log: true
 
     - name: Configure native vlan on trunk interfaces
       nxos_config:
